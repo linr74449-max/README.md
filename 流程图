@@ -1,0 +1,62 @@
+graph TD
+    %% 样式定义
+    classDef main fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1;
+    classDef q1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1.5px,color:#4a148c;
+    classDef q2 fill:#fff3e0,stroke:#f57c00,stroke-width:1.5px,color:#e65100;
+    classDef q3 fill:#e8f5e9,stroke:#388e3c,stroke-width:1.5px,color:#1b5e20;
+    classDef q4 fill:#ffebee,stroke:#d32f2f,stroke-width:1.5px,color:#b71c1c;
+    classDef nodeStyle fill:#fafafa,stroke:#616161,stroke-width:1px,color:#212121;
+
+    root[光伏电站发电功率日前预测研究]:::main
+    
+    %% 问题一
+    root --> Q1[问题一: 数据预处理与发电特性复盘]:::q1
+    Q1 --> Q1A[异常清洗算子]:::nodeStyle
+    Q1A --> Q1A1[1. 15分钟等距重采样对齐]
+    Q1A --> Q1A2[2. 孤立森林 Isolation Forest 三维异常标定]
+    Q1A --> Q1A3[3. 三次样条插值 Cubic Spline 补全与平滑]
+    Q1A --> Q1A4[4. 物理约束: 20:00-05:45 夜间基式强截断归零]
+    Q1 --> Q1B[发电特性分析]:::nodeStyle
+    Q1B --> Q1B1[短周期 日内 规律: 典型晴空钟形包络线 vs 多云非平稳剧烈锯齿毛刺]
+    Q1B --> Q1B2[长周期 季节 规律: 夏季长时高能与负温折变 vs 冬秋短时低能与高日际波动]
+
+    %% 问题二
+    root --> Q2[问题二: 纯历史时序 Baseline 建模及填报]:::q2
+    Q2 --> Q2A[特征工程]:::nodeStyle
+    Q2A --> Q2A1[1. 时空几何先验: Hour 小时坐标, Month 月份坐标]
+    Q2A --> Q2A2[2. 自回归记忆纽带: Lag_96 昨日相同时刻实测功率]
+    Q2 --> Q2B[约束对齐]:::nodeStyle
+    Q2B --> Q2B1[1. 测试集隔离: 2, 5, 8, 11月最后一周共 2688 行对齐]
+    Q2B --> Q2B2[2. 精度考核: 严格锁定 06:00 - 19:00 白昼时段统计]
+    Q2 --> Q2C[求解与导出]:::nodeStyle
+    Q2C --> Q2C1[模型: LSBoost弱学习器 GBDT 日前外推, 白昼准确率 97.72%]
+    Q2C --> Q2C2[导出: 真实日期15分钟等距无时序裂缝 日前预测结果表2.xlsx]
+
+    %% 问题三
+    root --> Q3[问题三: 多维NWP前馈与分场景聚类消融]:::q3
+    Q3 --> Q3A[前馈气象融合]:::nodeStyle
+    Q3A --> Q3A1[引入 NWP 总辐照度/直射辐照度/温湿度/风速]
+    Q3A --> Q3A2[全局融合模型预测精度由 97.72% 跨越式跃升至 98.72%]
+    Q3 --> Q3B[K-Means 物理语义场景重映射]:::nodeStyle
+    Q3B --> Q3B1[特征提取: 日均辐照度 Mean, 日辐照波动度 Std, 最大值 Max]
+    Q3B --> Q3B2[1. 自适应锁定 Std 最大者 => 高频扰动场景 多云阵雨]
+    Q3B --> Q3B3[2. 对比余下 Mean 大小 => 高照平稳 晴空 vs 低照平稳 阴雨]
+    Q3B --> Q3B4[气象现象: 云边缘超辐照效应 Cloud Edge Effect 导致多云天 Max 击穿晴天上限]
+    Q3 --> Q3C[场景消融控制变量 A/B 实验]:::nodeStyle
+    Q3C --> Q3C1[结论: 分场景 RMSE 轻微反弹至 0.845 MW 产生 -3.10% 负增益]
+    Q3C --> Q3C2[归因A: 样本碎片化 降至1/3 导致树分支 VC维 过拟合]
+    Q3C --> Q3C3[归因B: 欧氏距离 硬判定 造成过渡态边界天的先验特征污染]
+
+    %% 问题四
+    root --> Q4[问题四: 站点级 NWP 空间降尺度改进与检验]:::q4
+    Q4 --> Q4A[空间降尺度 Downscaling 算子]:::nodeStyle
+    Q4A --> Q4A1[痛点: NWP 宏观网格平均化 导致正午系统性削峰钝化]
+    Q4A --> Q4A2[算子: 自转/公转调制基波 + 海拔逆温/散射惩罚自适应微调]
+    Q4 --> Q4B[可行性硬核检验]:::nodeStyle
+    Q4B --> Q4B1[1. Wilcoxon 符号秩非参数检验: p-value = 0.012 < 0.05 独立显著可行]
+    Q4B --> Q4B2[2. 残差概率密度 PDF 拓扑检验: 曲线发生 高尖、窄尾 收敛形变]
+    Q4 --> Q4C[精度极限增益归因]:::nodeStyle
+    Q4C --> Q4C1[数据: 白昼 RMSE 进一步精细压降至 0.817 MW, 综合准确率突破至 98.73%]
+    Q4C --> Q4C2[成因1: 降尺度恢复正午局地太阳辐射爆发力, 修复削峰]
+    Q4C --> Q4C2[成因2: 精细刻画站点微气候对光伏组件负温效率的散热增益]
+    Q4C --> Q4C3[成因3: 物理黑夜硬约束引导, 阻断决策树低照度区长尾底噪]
